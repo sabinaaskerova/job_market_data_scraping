@@ -1,0 +1,9 @@
+playwright
+aiohttp
+aiosqlite
+markdown
+scrapy
+scrapy-proxy-pool
+scrapy-user-agents
+scrapy-proxies
+stem # Tor

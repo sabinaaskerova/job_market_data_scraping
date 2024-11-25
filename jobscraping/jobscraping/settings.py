@@ -13,6 +13,7 @@ SPIDER_MODULES = ["jobscraping.spiders"]
 NEWSPIDER_MODULE = "jobscraping.spiders"
 
 
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "jobscraping (+http://www.yourdomain.com)"
 
@@ -59,10 +60,20 @@ DEFAULT_REQUEST_HEADERS = {
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-# DOWNLOADER_MIDDLEWARES = {
-#    "jobscraping.middlewares.JobscrapingDownloaderMiddleware": 543,
-# }
+DOWNLOADER_MIDDLEWARES = {
+    # Your custom middleware
+    "jobscraping.middlewares.JobscrapingDownloaderMiddleware": 543,
 
+    # Scrapy's HTTP Proxy middleware
+    "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware": 110,
+
+    # Scrapy's Retry middleware (optional, but recommended for handling failed requests)
+    "scrapy.downloadermiddlewares.retry.RetryMiddleware": 90,
+}
+RETRY_ENABLED = True
+RETRY_TIMES = 3 # retry a failed request up to 3 times
+
+HTTP_PROXY = 'http://127.0.0.1:8118'
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
