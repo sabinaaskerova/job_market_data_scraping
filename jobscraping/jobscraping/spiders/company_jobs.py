@@ -1,59 +1,55 @@
 import scrapy
-from scrapy.item import Item, Field
+from scrapy.exporters import JsonItemExporter
 
-class CompanyItem(Item):
-    name = Field()
-    sector = Field()
-    website = Field()
-    year_of_founding = Field()
-    employees = Field()
-    gender_breakdown = Field()
-    average_age = Field()
-    social_links = Field()
-    text_blocks = Field()
+class CompanyItem(scrapy.Item):
+    name = scrapy.Field()
+    sector = scrapy.Field()
+    website = scrapy.Field()
+    year_of_founding = scrapy.Field()
+    employees = scrapy.Field()
+    gender_breakdown = scrapy.Field()
+    average_age = scrapy.Field()
+    social_links = scrapy.Field()
+    text_blocks = scrapy.Field()
 
-class JobItem(Item):
-    company_name = Field()
-    job_title = Field()
-    location = Field()
-    posted_date = Field()
-    contract_type = Field()
-    remote_status = Field()
-    job_link = Field()
+class JobItem(scrapy.Item):
+    company_name = scrapy.Field()
+    job_title = scrapy.Field()
+    location = scrapy.Field()
+    posted_date = scrapy.Field()
+    contract_type = scrapy.Field()
+    remote_status = scrapy.Field()
+    job_link = scrapy.Field()
 
 class CompanySpider(scrapy.Spider):
     name = "company_jobs"
     start_urls = []
 
-    custom_settings = {
-        "FEEDS": {
-            "company_data.json": {
-                "format": "json", 
-                "encoding": "utf8", 
-                "indent": 4,
-                "fields_to_export": [
-                    "name", "sector", "website", "year_of_founding", 
-                    "employees", "gender_breakdown", "average_age", 
-                    "social_links", "text_blocks"
-                ]
-            },
-            "job_data.json": {
-                "format": "json", 
-                "encoding": "utf8", 
-                "indent": 4,
-                "fields_to_export": [
-                    "company_name", "job_title", "location", 
-                    "posted_date", "contract_type", "remote_status", 
-                    "job_link"
-                ]
-            }
-        }
-    }
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Open output files for writing
+        self.company_file = open('company_data.json', 'wb')
+        self.jobs_file = open('job_data.json', 'wb')
+        
+        # Create item exporters
+        self.company_exporter = JsonItemExporter(self.company_file, ensure_ascii=False, indent=4)
+        self.jobs_exporter = JsonItemExporter(self.jobs_file, ensure_ascii=False, indent=4)
+        
+        # Start the JSON arrays
+        self.company_exporter.start_exporting()
+        self.jobs_exporter.start_exporting()
+        
+        # Read company URLs
         with open("company_urls.txt") as f:
             self.start_urls = [line.strip() for line in f if line.strip()]
+
+    def closed(self, reason):
+        # Close the exporters and files when spider is done
+        self.company_exporter.finish_exporting()
+        self.jobs_exporter.finish_exporting()
+        self.company_file.close()
+        self.jobs_file.close()
 
     def parse(self, response):
         """Parse links to company profiles."""
@@ -101,15 +97,15 @@ class CompanySpider(scrapy.Spider):
                 text_blocks[header] = " ".join(content)
         company_item["text_blocks"] = text_blocks
 
-        yield company_item
-        
+        # Export company item directly
+        self.company_exporter.export_item(company_item)
+
         jobs_url = response.url.rstrip("/") + "/jobs"
-        yield response.follow(jobs_url, callback=self.parse_job_list, meta={"company_item": company_item})
+        yield response.follow(jobs_url, callback=self.parse_job_list, meta={"company_name": company_item["name"]})
 
     def parse_job_list(self, response):
         """Extract job details from the job list page."""
-        company_item = response.meta["company_item"]
-        company_name = company_item["name"]
+        company_name = response.meta["company_name"]
         
         # Select all job list items, excluding the spontaneous application item
         job_items = response.css('ul[data-testid="search-results"] > li[data-testid="search-results-list-item-wrapper"]')
@@ -139,4 +135,5 @@ class CompanySpider(scrapy.Spider):
             
             job_details["job_link"] = job_item.css('a::attr(href)').get('')
             
-            yield job_details
+            # Export job item directly
+            self.jobs_exporter.export_item(job_details)
