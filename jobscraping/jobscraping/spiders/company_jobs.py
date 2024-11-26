@@ -1,4 +1,5 @@
 import scrapy
+import logging
 
 class CompanySpider(scrapy.Spider):
     name = "company_jobs"
@@ -7,6 +8,7 @@ class CompanySpider(scrapy.Spider):
     custom_settings = {
         "FEEDS": {
             "company_data.json": {"format": "json", "encoding": "utf8", "indent": 4},
+            "job_data.json": {"format": "json", "encoding": "utf8", "indent": 4},
         }
     }
 
@@ -19,6 +21,12 @@ class CompanySpider(scrapy.Spider):
         """Parse alphabetic listing pages and follow links to company profiles."""
         # Updated selector to match the provided HTML structure
         company_links = response.css('div[data-testid="directory-results"] div.sc-15yi4tf-1 a::attr(href)').getall()
+        logging.info(f"Found company links: {company_links}")
+        
+        with open("company_urls.txt", "w") as f:
+            for link in company_links:
+                f.write(f"{link}\n")
+        
         for link in company_links:
             yield response.follow(link, callback=self.parse_company)
     
@@ -27,12 +35,10 @@ class CompanySpider(scrapy.Spider):
         company_data = {}
 
         # Extracting structured information using selectors
-        company_data["name"] = response.css(
-            '#app > div > div > div > main > header > div.sc-cbPlza.kjvHBB > div > div > h1::text').get()
-        company_data["sector"] = response.css(
-            '#app > div > div > div > main > header > div.sc-cbPlza.kjvHBB > div > div > div.sc-kufkCr.ihcEQO > div.sc-bXCLTC.bYVHtb > p::text').get()
-        company_data["website"] = response.css(
-            '#app > div > div > div > main > header > div.sc-cbPlza.kjvHBB > div > div > div.sc-kufkCr.ihcEQO > div:nth-child(3) > p > a::attr(href)').get()
+        company_data["name"] = response.css('header[data-testid="showcase-header"] h1::text').get()
+        company_data["sector"] = response.css('div[data-testid="showcase-header-sector"] p::text').get()
+        company_data["website"] = response.css('div[data-testid="showcase-header-website"] a::attr(href)').get()
+
         company_data["year_of_founding"] = response.css(
             '[data-testid="stats-creation-year"]::text').get()
         company_data["employees"] = response.css(
@@ -66,3 +72,36 @@ class CompanySpider(scrapy.Spider):
         company_data["text_blocks"] = text_blocks
 
         yield company_data
+        company_name = company_data["name"]
+        # Follow job links
+        job_links = response.css('[data-testid="search-results"] a::attr(href)').getall()
+        logging.info(f"{company_name} : Found job links: {job_links}")
+        for link in job_links:
+            yield response.follow(link, callback=self.parse_job, meta={'company_data': company_data})
+        
+
+
+
+    def parse_job(self, response):
+        """Extract job information from individual job postings."""
+        # company_data = response.meta['company_data']
+        job_data = {}
+
+        # Extract job information using selectors (to be provided)
+        job_data["title"] = response.css('#app > div > div > div > div > div.kjbyhm-0.kkMUtC > section > div.sc-bXCLTC.jlqIpd.sc-la-DkbX.eEsAXp.kjbyhm-5.fDBMPS > h2::text').get()
+        job_data["location"] = response.css('#app > div > div > div > div > div.kjbyhm-0.kkMUtC > section > div.sc-bXCLTC.jlqIpd.sc-la-DkbX.eEsAXp.kjbyhm-5.fDBMPS > div.sc-bXCLTC.cWuusC > div:nth-child(1) > div.sc-bXCLTC.hdepoj > div:nth-child(2) > span > span::text').get()
+            
+            # Extract job description from multiple <p> tags
+        description_parts = response.css('#the-position-section > div > div.sc-bXCLTC.eCbjRu.sc-1fssv9b-1.fhzEMX > div:nth-child(1) > div > div.sc-1j992t7-0.bWfUsr > div > p::text').getall()
+        job_data["description"] = " ".join(description_parts)
+            
+        additional_description_parts = response.css('#the-position-section > div > div.sc-bXCLTC.eCbjRu.sc-1fssv9b-1.fhzEMX > div:nth-child(3) > div > div.sc-1j992t7-0.bWfUsr > div > p::text, #the-position-section > div > div.sc-bXCLTC.eCbjRu.sc-1fssv9b-1.fhzEMX > div:nth-child(3) > div > div.sc-1j992t7-0.bWfUsr > div > ul > li > p::text').getall()
+        job_data["additional_description"] = " ".join(additional_description_parts)
+        
+        # Combine company data with job data
+        # company_data["jobs"] = company_data.get("jobs", [])
+        # company_data["jobs"].append(job_data)
+
+        # yield company_data
+        logging.info(f"Scraped job data: {job_data}")
+        yield job_data
