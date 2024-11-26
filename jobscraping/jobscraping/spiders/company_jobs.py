@@ -14,24 +14,14 @@ class CompanySpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        with open("companies_alphabet.txt") as f:
+        with open("company_urls.txt") as f:
             self.start_urls = [line.strip() for line in f if line.strip()]
 
     def parse(self, response):
-        """Parse alphabetic listing pages and follow links to company profiles."""
-        # Updated selector to match the provided HTML structure
-        base_url = "https://www.welcometothejungle.com/"
-        company_links = response.css('div[data-testid="directory-results"] div.sc-15yi4tf-1 a::attr(href)').getall()
-        logging.info(f"Found company links: {company_links}")
-        
-        with open("company_urls.txt", "a") as f:
-            for link in company_links:
-                full_url = base_url + link
-                f.write(f"{full_url}\n")
-        
-        for link in company_links:
-            full_url = base_url + link
-            yield response.follow(full_url, callback=self.parse_company)
+        """Parse links to company profiles."""
+        for link in self.start_urls:
+            # logging.info(f"Following link: {link}")
+            yield response.follow(link, callback=self.parse_company)
     
     def parse_company(self, response):
         """Extract company information from individual company pages."""
