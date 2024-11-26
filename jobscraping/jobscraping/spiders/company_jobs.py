@@ -67,39 +67,43 @@ class CompanySpider(scrapy.Spider):
         yield company_data
         
         jobs_url = response.url.rstrip("/") + "/jobs"
-        print(jobs_url)
         yield response.follow(jobs_url, callback=self.parse_job_list, meta={"company_data": company_data})
 
     def parse_job_list(self, response):
-        """Extract job links from the job list page."""
+        """Extract job details from the job list page."""
         company_data = response.meta["company_data"]
         company_name = company_data["name"]
-        job_links = response.css('ul[data-testid="search-results"] li a::attr(href)').getall()
-  
-        # Filter out any unwanted links (like the spontaneous application link)
-        job_links = [link for link in job_links if '/jobs/' in link]
-        logging.info(f"{company_name} : Found job links: {job_links}")
-        for link in job_links:
-            yield response.follow(link, callback=self.parse_job, meta={"company_data": company_data})
-
-
-
-    def parse_job(self, response):
-        """Extract job information from individual job postings."""
-        company_data = response.meta['company_data']
-        job_data = {}
-
-        # Extract job information using selectors (to be provided)
-        job_data["title"] = response.css('#app > div > div > div > div > div.kjbyhm-0.kkMUtC > section > div.sc-bXCLTC.jlqIpd.sc-la-DkbX.eEsAXp.kjbyhm-5.fDBMPS > h2::text').get()
-        job_data["location"] = response.css('#app > div > div > div > div > div.kjbyhm-0.kkMUtC > section > div.sc-bXCLTC.jlqIpd.sc-la-DkbX.eEsAXp.kjbyhm-5.fDBMPS > div.sc-bXCLTC.cWuusC > div:nth-child(1) > div.sc-bXCLTC.hdepoj > div:nth-child(2) > span > span::text').get()
-            
-            # Extract job description from multiple <p> tags
-        description_parts = response.css('#the-position-section > div > div.sc-bXCLTC.eCbjRu.sc-1fssv9b-1.fhzEMX > div:nth-child(1) > div > div.sc-1j992t7-0.bWfUsr > div > p::text').getall()
-        job_data["description"] = " ".join(description_parts)
-            
-        additional_description_parts = response.css('#the-position-section > div > div.sc-bXCLTC.eCbjRu.sc-1fssv9b-1.fhzEMX > div:nth-child(3) > div > div.sc-1j992t7-0.bWfUsr > div > p::text, #the-position-section > div > div.sc-bXCLTC.eCbjRu.sc-1fssv9b-1.fhzEMX > div:nth-child(3) > div > div.sc-1j992t7-0.bWfUsr > div > ul > li > p::text').getall()
-        job_data["additional_description"] = " ".join(additional_description_parts)
         
-        job_data["company_name"] = company_data.get("name", "N/A")
-        logging.info(f"Scraped job data: {job_data}")
-        yield job_data
+        # Select all job list items, excluding the spontaneous application item
+        job_items = response.css('ul[data-testid="search-results"] > li[data-testid="search-results-list-item-wrapper"]')
+        
+        for job_item in job_items:
+            # Extract job details
+            job_details = {
+                'company_name': company_name,
+                'job_title': job_item.css('h4 div[role="mark"]::text').get('').strip(),
+                
+                # Find location by selecting the text after the location icon
+                'location': job_item.xpath(
+                    './/i[@name="location"]/following-sibling::p//text()'
+                ).get('').strip(),
+                
+                'posted_date': job_item.css('time::attr(datetime)').get(''),
+                
+                # Find contract type by selecting the text after the contract icon
+                'contract_type': job_item.xpath(
+                    './/i[@name="contract"]/following-sibling::span/text()'
+                ).get('').strip(),
+                
+                # Find remote status by selecting the text after the remote icon
+                'remote_status': job_item.xpath(
+                    './/i[@name="remote"]/following-sibling::span/text()'
+                ).get('').strip(),
+                
+                'job_link': job_item.css('a::attr(href)').get('')
+            }
+            
+            yield job_details
+
+
+
