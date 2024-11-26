@@ -12,6 +12,8 @@ BOT_NAME = "jobscraping"
 SPIDER_MODULES = ["jobscraping.spiders"]
 NEWSPIDER_MODULE = "jobscraping.spiders"
 
+RETRY_ENABLED = True
+RETRY_TIMES = 5  # Increase the number of retries
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -51,41 +53,14 @@ DEFAULT_REQUEST_HEADERS = {
     "Upgrade-Insecure-Requests": "1",
 }
 
-# Enable or disable spider middlewares
-# See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
-#    "jobscraping.middlewares.JobscrapingSpiderMiddleware": 543,
-#}
+# PROXY_POOL_ENABLED = True
+# DOWNLOADER_MIDDLEWARES = {
+#     # ...
+#     'scrapy_proxy_pool.middlewares.ProxyPoolMiddleware': 610,
+#     'scrapy_proxy_pool.middlewares.BanDetectionMiddleware': 620,
+#     # ...
+# }
 
-
-# Enable or disable downloader middlewares
-# See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-DOWNLOADER_MIDDLEWARES = {
-    # Your custom middleware
-    "jobscraping.middlewares.JobscrapingDownloaderMiddleware": 543,
-
-    # Scrapy's HTTP Proxy middleware
-    "scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware": 110,
-
-    # Scrapy's Retry middleware (optional, but recommended for handling failed requests)
-    "scrapy.downloadermiddlewares.retry.RetryMiddleware": 90,
-}
-RETRY_ENABLED = True
-RETRY_TIMES = 3 # retry a failed request up to 3 times
-
-HTTP_PROXY = 'http://127.0.0.1:8118'
-
-# Enable or disable extensions
-# See https://docs.scrapy.org/en/latest/topics/extensions.html
-#EXTENSIONS = {
-#    "scrapy.extensions.telnet.TelnetConsole": None,
-#}
-
-# Configure item pipelines
-# See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "jobscraping.pipelines.JobscrapingPipeline": 300,
-#}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
@@ -99,6 +74,35 @@ AUTOTHROTTLE_MAX_DELAY = 30
 AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 # Enable showing throttling stats for every response received:
 #AUTOTHROTTLE_DEBUG = False
+
+# Enable or disable spider middlewares
+# See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+#SPIDER_MIDDLEWARES = {
+#    "jobscraping.middlewares.JobscrapingSpiderMiddleware": 543,
+#}
+
+
+# Enable or disable downloader middlewares
+# See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
+# DOWNLOADER_MIDDLEWARES = {
+#    "jobscraping.middlewares.JobscrapingDownloaderMiddleware": 543,
+# }
+
+
+
+# Enable or disable extensions
+# See https://docs.scrapy.org/en/latest/topics/extensions.html
+#EXTENSIONS = {
+#    "scrapy.extensions.telnet.TelnetConsole": None,
+#}
+
+# Configure item pipelines
+# See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+#ITEM_PIPELINES = {
+#    "jobscraping.pipelines.JobscrapingPipeline": 300,
+#}
+
+
 
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings

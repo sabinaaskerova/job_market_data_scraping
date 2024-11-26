@@ -1,14 +1,12 @@
 import scrapy
-import json
-from urllib.parse import urljoin
 
-class CompanyJobsSpider(scrapy.Spider):
+class CompanySpider(scrapy.Spider):
     name = "company_jobs"
-    start_urls = []  # Populate with URLs from companies_alphabet.txt
+    start_urls = []
+
     custom_settings = {
         "FEEDS": {
-            "companies.json": {"format": "json", "encoding": "utf8", "indent": 4},
-            "jobs.json": {"format": "json", "encoding": "utf8", "indent": 4},
+            "company_data.json": {"format": "json", "encoding": "utf8", "indent": 4},
         }
     }
 
@@ -18,64 +16,53 @@ class CompanyJobsSpider(scrapy.Spider):
             self.start_urls = [line.strip() for line in f if line.strip()]
 
     def parse(self, response):
-        """Parse directory pages to extract company links and names."""
-        companies = response.xpath('//div[@data-testid="directory-results"]/div')
-        for company in companies:
-            company_link = company.xpath('.//a/@href').get()
-            company_name = company.xpath('.//h4/text()').get()
-
-            if company_link:
-                company_url = urljoin(response.url, company_link)
-                yield scrapy.Request(
-                    company_url,
-                    callback=self.parse_company,
-                    meta={"company_name": company_name, "company_url": company_url},
-                )
-
+        """Parse alphabetic listing pages and follow links to company profiles."""
+        # Updated selector to match the provided HTML structure
+        company_links = response.css('div[data-testid="directory-results"] div.sc-15yi4tf-1 a::attr(href)').getall()
+        for link in company_links:
+            yield response.follow(link, callback=self.parse_company)
+    
     def parse_company(self, response):
-        """Parse company pages and follow to their jobs page."""
-        company_name = response.meta["company_name"]
-        company_url = response.meta["company_url"]
+        """Extract company information from individual company pages."""
+        company_data = {}
 
-        # Extract company details
-        company_details = {
-            "name": company_name,
-            "url": company_url,
-            "description": response.xpath('//meta[@name="description"]/@content').get(),
+        # Extracting structured information using selectors
+        company_data["name"] = response.css(
+            '#app > div > div > div > main > header > div.sc-cbPlza.kjvHBB > div > div > h1::text').get()
+        company_data["sector"] = response.css(
+            '#app > div > div > div > main > header > div.sc-cbPlza.kjvHBB > div > div > div.sc-kufkCr.ihcEQO > div.sc-bXCLTC.bYVHtb > p::text').get()
+        company_data["website"] = response.css(
+            '#app > div > div > div > main > header > div.sc-cbPlza.kjvHBB > div > div > div.sc-kufkCr.ihcEQO > div:nth-child(3) > p > a::attr(href)').get()
+        company_data["year_of_founding"] = response.css(
+            '[data-testid="stats-creation-year"]::text').get()
+        company_data["employees"] = response.css(
+            '[data-testid="stats-nb-employees"]::text').get()
+        company_data["gender_breakdown"] = {
+            "women": response.css('[data-testid="stats-parity-women"]::text').get(),
+            "men": response.css('[data-testid="stats-parity-men"]::text').get(),
         }
-        yield {"type": "company", "data": company_details}
+        company_data["average_age"] = response.css(
+            '[data-testid="stats-average-age"]::text'
+        ).get()
 
-        # Follow to the jobs page
-        jobs_url = urljoin(company_url, "jobs")
-        yield scrapy.Request(
-            jobs_url,
-            callback=self.parse_jobs,
-            meta={"company_name": company_name},
-        )
+        # Social links
+        social_links = {}
+        for social in response.css('[data-testid="organization-content-block-social-networks"] a'):
+            platform = social.attrib.get("data-testid", "").split("-")[-1]
+            link = social.attrib.get("href", "")
+            if platform and link:
+                social_links[platform] = link
+        company_data["social_links"] = social_links
 
-    def parse_jobs(self, response):
-        """Parse the jobs page to get job links."""
-        company_name = response.meta["company_name"]
-        job_links = response.xpath('//a[contains(@href, "/jobs/")]/@href').getall()
+        # Text blocks
+        text_blocks = {}
+        for block in response.css(
+            '[data-testid="organization-content-block-text"]'
+        ):
+            header = block.css("h4::text").get()
+            content = block.css("div.QVIoI p::text, div.QVIoI li::text").getall()
+            if header and content:
+                text_blocks[header] = " ".join(content)
+        company_data["text_blocks"] = text_blocks
 
-        for job_link in job_links:
-            job_url = urljoin(response.url, job_link)
-            yield scrapy.Request(
-                job_url,
-                callback=self.parse_job_details,
-                meta={"company_name": company_name, "job_url": job_url},
-            )
-
-    def parse_job_details(self, response):
-        """Parse individual job details."""
-        company_name = response.meta["company_name"]
-        job_url = response.meta["job_url"]
-
-        job_details = {
-            "company": company_name,
-            "url": job_url,
-            "title": response.xpath('//h1/text()').get(),
-            "location": response.xpath('//p[contains(@class, "location")]/text()').get(),
-            "description": response.xpath('//div[contains(@class, "job-description")]//text()').getall(),
-        }
-        yield {"type": "job", "data": job_details}
+        yield company_data
