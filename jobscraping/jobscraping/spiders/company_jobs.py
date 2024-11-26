@@ -64,20 +64,45 @@ class CompanySpider(scrapy.Spider):
                 text_blocks[header] = " ".join(content)
         company_data["text_blocks"] = text_blocks
 
-        yield company_data
-        company_name = company_data["name"]
+        
+        # company_name = company_data["name"]
         # Follow job links
-        job_links = response.css('[data-testid="search-results"] a::attr(href)').getall()
+        # job_links = response.css('li[data-testid="search-results-list-item-wrapper"] a::attr(href)').getall()
+        # job_links = response.css('[data-testid="search-results-list-item-wrapper"] div a::attr(href)').getall()
+
+        # job_links = response.css('ul[data-testid="search-results-list"] li[data-testid="search-results-list-item-wrapper"] a::attr(href)').getall()
+        # print(response.css('ul[data-testid="search-results-list"]'))
+        # print(response.css('ul[data-testid="search-results-list"] li[data-testid="search-results-list-item-wrapper"]').getall())
+        # # job_links = []
+        # # for job_link in response.css('ul[data-testid="search-results"] li a::attr(href)').getall():
+        # #     job_links.append(job_link)
+
+
+        # logging.info(f"{company_name} : Found job links: {job_links}")
+        # for link in job_links:
+        #     yield response.follow(link, callback=self.parse_job, meta={'company_data': company_data})
+        
+        jobs_url = response.url.rstrip("/") + "/jobs"
+        yield response.follow(jobs_url, callback=self.parse_job_list, meta={"company_data": company_data})
+
+    def parse_job_list(self, response):
+        """Extract job links from the job list page."""
+        company_data = response.meta["company_data"]
+        company_name = company_data["name"]
+
+        # Extract job links using selectors
+        job_links = response.css('ul[data-testid="search-results-list"] li[data-testid="search-results-list-item-wrapper"] a::attr(href)').getall()
+        company_data["jobs"] = job_links
+        yield company_data
         logging.info(f"{company_name} : Found job links: {job_links}")
         for link in job_links:
-            yield response.follow(link, callback=self.parse_job, meta={'company_data': company_data})
-        
+            yield response.follow(link, callback=self.parse_job, meta={"company_data": company_data})
 
 
 
     def parse_job(self, response):
         """Extract job information from individual job postings."""
-        # company_data = response.meta['company_data']
+        company_data = response.meta['company_data']
         job_data = {}
 
         # Extract job information using selectors (to be provided)
@@ -96,5 +121,6 @@ class CompanySpider(scrapy.Spider):
         # company_data["jobs"].append(job_data)
 
         # yield company_data
+        job_data["company_name"] = company_data.get("name", "N/A")
         logging.info(f"Scraped job data: {job_data}")
         yield job_data
