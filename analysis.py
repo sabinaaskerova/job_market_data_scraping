@@ -2,8 +2,8 @@ import json
 from collections import defaultdict
 from tqdm import tqdm
 
-from company import Company
-from parse_json import process_company_entry
+from job_market_data_scraping.company import Company
+from job_market_data_scraping.parse_json import process_company_entry
 
 
 # missing, duplicates, corrections
@@ -14,8 +14,8 @@ from parse_json import process_company_entry
 
 
 if __name__ == "__main__":
-    input_file = "../data/company_data.json"
-    input_file_cleaned = "../data/cleaned_company_data.json"
+    input_file = "data/company_data.json"
+    input_file_cleaned = "data/cleaned_company_data.json"
 
     with open(input_file, "r", encoding="utf-8") as fin1:
         raw_data = json.load(fin1)
