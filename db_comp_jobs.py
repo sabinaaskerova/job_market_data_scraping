@@ -1,8 +1,8 @@
 import sqlite3
 import json
 
-job_offers_json_path = 'job_data.json'
-companies_json_path = 'cleaned_company_data.json'
+job_offers_json_path = 'data/job_data.json'
+companies_json_path = 'data/cleaned_company_data.json'
 
 with open(job_offers_json_path, 'r', encoding='utf-8') as file:
     job_offers = json.load(file)
@@ -31,7 +31,8 @@ cursor.execute('''
         social_links_youtube TEXT,
         presentation TEXT,
         looking_for TEXT,
-        good_to_know TEXT
+        good_to_know TEXT,
+        language TEXT
     )
 ''')
 
@@ -55,13 +56,14 @@ for company in companies:
         INSERT INTO companies (name, sector, website, year_of_founding, employees,
                                gender_breakdown_women, gender_breakdown_men, average_age,
                                social_links_facebook, social_links_linkedin, social_links_twitter, 
-                               social_links_youtube, presentation, looking_for, good_to_know)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                               social_links_youtube, presentation, looking_for, good_to_know, language)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         company['name'], ', '.join(company['sector']), company['website'], company['year_of_founding'], company['employees'],
         company['gender_breakdown']['women'], company['gender_breakdown']['men'], company['average_age'],
         company['social_links'].get('facebook', ''), company['social_links'].get('linkedin', ''), company['social_links'].get('twitter', ''),
-        company['social_links'].get('youtube', ''), company['text_blocks'].get('Presentation', ''), company['text_blocks'].get('What they are looking for', ''), company['text_blocks'].get('Good to know', '')
+        company['social_links'].get('youtube', ''), company['text_blocks'].get('Presentation', ''), 
+        company['text_blocks'].get('What they are looking for', ''), company['text_blocks'].get('Good to know', ''), company.get('Language', '')
     ))
 
 connection.commit()

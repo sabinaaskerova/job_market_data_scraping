@@ -7,3 +7,7 @@ scrapy-proxy-pool
 scrapy-user-agents
 scrapy-proxies
 stem # Tor
+spacy
+langdetect
+pandas
+ipython

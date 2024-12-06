@@ -1,6 +1,7 @@
 import requests
 import json
 from datetime import datetime
+import os
 
 # Define the request URL
 url = "https://csekhvms53-dsn.algolia.net/1/indexes/*/queries?x-algolia-agent=Algolia%20for%20JavaScript%20(4.20.0)%3B%20Browser%3B%20JS%20Helper%20(3.14.0)%3B%20react%20(18.2.0)%3B%20react-instantsearch%20(6.40.4)&search_origin=companies_search_client"
@@ -99,7 +100,9 @@ while page * 30 < total_hits:
 
 # Save results
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-filename = f"companies_{timestamp}.json"
+
+os.makedirs("data", exist_ok=True)
+filename = f"data/companies_{timestamp}.json"
 with open(filename, "w", encoding="utf-8") as file:
     json.dump(all_companies, file, indent=4, ensure_ascii=False)
 
