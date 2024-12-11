@@ -17,4 +17,4 @@ Data acquisition, extraction and storage project at Université Paris Dauphine-P
 ## Usage
 
 - Install all dependencies with `pip install -r requirements.txt`
-- Run `python3 db_comp_jobs.py` and a **jobs.db** file will be created under data/.
+- Run `python3 db_comp_jobs.py` and a **job_market.db** file will be created under data/.
