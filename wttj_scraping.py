@@ -4,13 +4,15 @@ from datetime import datetime
 import os
 
 # Define the request URL
-url = "https://csekhvms53-dsn.algolia.net/1/indexes/*/queries?x-algolia-agent=Algolia%20for%20JavaScript%20(4.20.0)%3B%20Browser%3B%20JS%20Helper%20(3.14.0)%3B%20react%20(18.2.0)%3B%20react-instantsearch%20(6.40.4)&search_origin=companies_search_client"
+url = "https://csekhvms53-dsn.algolia.net/1/indexes/*/queries?x-algolia-agent=Algolia%20for%20JavaScript%20(4.20.0)%3B%20Browser&search_origin=job_search_client"
+
+# Headers (copied from browser's network tab for this request)
 headers = {
     "Accept": "*/*",
     "Accept-Encoding": "gzip, deflate, br, zstd",
     "Accept-Language": "en-US,en;q=0.9,fr;q=0.8",
     "Connection": "keep-alive",
-    "Content-Length": "3024",
+    "Content-Length": "7707",
     "Content-Type": "application/x-www-form-urlencoded",
     "Host": "csekhvms53-dsn.algolia.net",
     "Origin": "https://www.welcometothejungle.com",
@@ -26,84 +28,56 @@ headers = {
     "x-algolia-application-id": "CSEKHVMS53"
 }
 
-def fetch_companies(page):
+# Function to fetch data for a specific page
+def fetch_data(page):
     payload = {
         "requests": [
             {
-                "indexName": "wk_cms_organizations_production",
-                "params": (
-                    "analyticsTags=page:companies_index,language:en"
-                    "&aroundPrecision=20000"
-                    "&attributesToHighlight=name"
-                    "&attributesToRetrieve=cover_image.small.url,descriptions,featured_image.url,jobs_count,logo.large.url,logo.url,name,objectID,offices,profile_type,published_at,reference,sectors,slug,website,cover_image.en.small.url,size.en,accepts_spontaneous_application"
-                    "&clickAnalytics=true"
-                    "&facetFilters=[['languages:en']]"
-                    "&facets=labels,languages,offices.country_code,offices.district,offices.location,offices.state,online,sectors.parent.en,sectors_name.en.Advertising / Marketing / Agency,sectors_name.en.Architecture,sectors_name.en.Banking / Insurance / Finance,sectors_name.en.Consulting / Audit,sectors_name.en.Corporate Services,sectors_name.en.Culture / Media / Entertainment,sectors_name.en.Distribution,sectors_name.en.Education / Training / Recruitment,sectors_name.en.Engineering,sectors_name.en.Fashion / Luxury / Beauty / Lifestyle,sectors_name.en.Food and Beverage,sectors_name.en.Health / Social / Environment,sectors_name.en.Hotel / Tourism / Leisure,sectors_name.en.Industry,sectors_name.en.Legal / Law,sectors_name.en.Mobility / Transport,sectors_name.en.Nonprofit / Association,sectors_name.en.Public Administration,sectors_name.en.Real Estate,sectors_name.en.Tech,size.en"
-                    "&filters=website.reference:wttj_fr"
-                    "&highlightPostTag=</ais-highlight-0000000000>"
-                    "&highlightPreTag=<ais-highlight-0000000000>"
-                    "&hitsPerPage=30"
-                    "&maxValuesPerFacet=999"
-                    f"&page={page}"
-                    "&query="
-                    "&tagFilters="
-                    "&userToken=86028995-2a08-43dd-940c-fe39a5713f50"
-                )
-            },
-            {
-                "indexName": "wk_cms_organizations_production",
-                "params": (
-                    "analytics=false"
-                    "&analyticsTags=page:companies_index,language:en"
-                    "&aroundPrecision=20000"
-                    "&attributesToHighlight=name"
-                    "&attributesToRetrieve=cover_image.small.url,descriptions,featured_image.url,jobs_count,logo.large.url,logo.url,name,objectID,offices,profile_type,published_at,reference,sectors,slug,website,cover_image.en.small.url,size.en,accepts_spontaneous_application"
-                    "&clickAnalytics=false"
-                    "&facets=languages"
-                    "&filters=website.reference:wttj_fr"
-                    "&highlightPostTag=</ais-highlight-0000000000>"
-                    "&highlightPreTag=<ais-highlight-0000000000>"
-                    "&hitsPerPage=0"
-                    "&maxValuesPerFacet=999"
-                    f"&page={page}"
-                    "&query="
-                    "&userToken=86028995-2a08-43dd-940c-fe39a5713f50"
-                )
+                "indexName": "wttj_jobs_production_en",
+                "params": "attributesToHighlight=name"
+                          "&attributesToRetrieve=*"
+                          "&clickAnalytics=true"
+                          "&hitsPerPage=30"
+                          "&maxValuesPerFacet=999"
+                          "&analytics=true"
+                          "&enableABTest=true"
+                          "&userToken=86028995-2a08-43dd-940c-fe39a5713f50"
+                          "&analyticsTags=page:jobs_index,language:en"
+                          "&facets=benefits,organization.commitments,contract_type,contract_duration_minimum,contract_duration_maximum,has_contract_duration,education_level,has_education_level,experience_level_minimum,has_experience_level_minimum,organization.nb_employees,organization.labels,salary_yearly_minimum,has_salary_yearly_minimum,salary_currency,followedCompanies,language,new_profession.category_reference,new_profession.sub_category_reference,remote,sectors.parent_reference,sectors.reference"
+                          "&filters= language:en"
+                          f"&page={page}"
+                          "&query="
             }
         ]
     }
     response = requests.post(url, headers=headers, json=payload)
     return response
 
-# Main Logic
-all_companies = []
+# Initialize variables
+all_data = []
 page = 0
-total_hits = 1  # Start with a non-zero value
+total_hits = 1  # Initialize with a non-zero value to enter the loop
 
+# Loop through pages until all job postings are fetched
 while page * 30 < total_hits:
-    print(f"Fetching page {page}...")
-    response = fetch_companies(page)
+    response = fetch_data(page)
     if response.status_code == 200:
         data = response.json()
-        if "results" in data and len(data["results"]) > 0:
-            hits = data["results"][0]["hits"]
-            total_hits = data["results"][0]["nbHits"]
-            all_companies.extend(hits)
-            print(f"Fetched page {page}, companies: {len(hits)}, total: {total_hits}")
-            page += 1
-        else:
-            print("No results in response.")
-            break
+        print(data)
+        hits = data['results'][0]['hits']
+        total_hits = data['results'][0]['nbHits']
+        all_data.extend(hits)
+        page += 1
+        print(f"Fetched page {page}, total hits: {hits}")
     else:
-        print(f"HTTP Error {response.status_code}: {response.text}")
+        print(f"Failed to fetch data. HTTP Status Code: {response.status_code}")
+        print("Response:", response.text)
         break
 
-# Save results
+# Save the JSON to a file with a timestamp
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-os.makedirs("data", exist_ok=True)
-filename = f"data/companies_{timestamp}.json"
+filename = f"job_postings_{timestamp}.json"
 with open(filename, "w", encoding="utf-8") as file:
-    json.dump(all_companies, file, indent=4, ensure_ascii=False)
+    json.dump(all_data, file, indent=4, ensure_ascii=False)
 
-print(f"Saved {len(all_companies)} companies to {filename}")
+print(f"JSON response saved to {filename}")
